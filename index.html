@@ -341,6 +341,7 @@ html[lang="fr"] .ev.now .type::after{content:"En cours"}
   .cutout{--fs:7rem}
   .gallery{margin:0 calc(50% - 720px);width:1440px}
 }
+a[data-href]{cursor:pointer}
 /* Footer */
 footer{border-top:1px solid var(--line);font-size:.84rem;color:var(--ink-3)}
 footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:30px;padding-bottom:30px}
@@ -770,8 +771,8 @@ function go(k, smooth){
   else document.getElementById(SECTIONS[k]).scrollIntoView({behavior: smooth?'smooth':'auto'});
 }
 document.addEventListener('click', e => {
-  const a = e.target.closest('a[href^="#"]'); if (!a) return;
-  const k = a.getAttribute('href').slice(1); if (!(k in SECTIONS)) return;
+  const a = e.target.closest('a[data-href^="#"]'); if (!a) return;
+  const k = a.dataset.href.slice(1); if (!(k in SECTIONS)) return;
   e.preventDefault(); history.replaceState(null,'','#'+k); go(k, true);
 });
 function spy(){
@@ -812,6 +813,27 @@ function setLang(l){
 document.getElementById('lang').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setLang(b.dataset.l); });
 let savedLang = 'en'; try { savedLang = localStorage.getItem('lang') || 'en'; } catch(e) {}
 if (savedLang==='fr') setLang('fr');
+
+/* ── Hide link addresses in the browser's bottom corner: links keep working, but no URL preview on hover ── */
+(function(){
+  const conv = a => {
+    if (!a.hasAttribute('href')) return;
+    a.dataset.href = a.getAttribute('href'); a.removeAttribute('href');
+    if (!a.hasAttribute('tabindex')) a.tabIndex = 0;
+    a.setAttribute('role','link');
+  };
+  const open = (a, e) => {
+    if (a.dataset.mail) return;                       // e-mail handled separately
+    const u = a.dataset.href; if (!u || u.startsWith('#')) return;   // section links handled by the menu code
+    e.preventDefault();
+    if (a.target === '_blank' || e.metaKey || e.ctrlKey) window.open(u, '_blank', 'noopener');
+    else location.href = u;
+  };
+  document.querySelectorAll('a[href]').forEach(conv);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType===1){ if (n.matches('a[href]')) conv(n); n.querySelectorAll && n.querySelectorAll('a[href]').forEach(conv); } }))).observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('click', e => { const a = e.target.closest('a[data-href]'); if (a) open(a, e); });
+  document.addEventListener('keydown', e => { if (e.key==='Enter'){ const a = e.target.closest && e.target.closest('a[data-href]'); if (a) a.click(); } });
+})();
 </script>
 </body>
 </html>
